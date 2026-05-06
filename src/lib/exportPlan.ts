@@ -50,6 +50,7 @@ function mkMercator(mapCenter: { lat: number; lng: number }, zoom: number, W: nu
 }
 
 export async function exportPlan(p: ExportParams): Promise<void> {
+  const logoImg = await loadImage('/valtir/demo/valtir-logo.png');
   // ── Layout (logical px, canvas rendered at 2×) ──────────────────
   const DPR  = 2;
   const LW   = 1240;   // logical width
@@ -96,18 +97,10 @@ export async function exportPlan(p: ExportParams): Promise<void> {
   ctx.fillStyle = C.border;
   ctx.fillRect(0, HEADER_H - 1, LW, 1);
 
-  // Orange "V" brand
-  ctx.fillStyle = C.accent;
-  ctx.font = font(42, 900);
-  ctx.fillText('V', 28, 56);
-
-  // "VALTIR SITEPLAN"
-  ctx.fillStyle = C.white;
-  ctx.font = font(18, 800);
-  ctx.fillText('VALTIR', 76, 38);
-  ctx.fillStyle = C.sub;
-  ctx.font = font(18, 400);
-  ctx.fillText('SITEPLAN', 76 + 64, 38);
+  if (logoImg) {
+    const scale = 36 / logoImg.naturalHeight;
+    ctx.drawImage(logoImg, 28, 22, logoImg.naturalWidth * scale, 36);
+  }
 
   // Plan name — centered, large, prominent
   ctx.fillStyle = C.white;

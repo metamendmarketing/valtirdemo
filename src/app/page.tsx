@@ -759,6 +759,10 @@ export default function SitePlanner() {
   const [searchQuery, setSearchQuery] = useState('');
   const lastDragPos = useRef<{lat: number, lng: number} | null>(null);
 
+  // Group rotation state
+  const [groupRotation, setGroupRotation] = useState(0);
+  const initialGroupSnapshotRef = useRef<{ id: string; x?: number; y?: number; lat?: number; lng?: number; rotation: number }[] | null>(null);
+
   // ── Plans ────────────────────────────────────────────────────────────────
   const {
     plans, activePlanId, activePlanName, setActivePlanName,
@@ -957,6 +961,12 @@ export default function SitePlanner() {
     });
   }, [activePlanName, placedItems, blueprintItems, viewMode, mapCenter, zoom, mapType, blueprintUrl, bpScale]);
 
+  // ── Group Rotation Handlers ────────────────────────────────────────────────
+  useEffect(() => {
+    setGroupRotation(0);
+    initialGroupSnapshotRef.current = null;
+  }, [selectedIds]);
+
   if (!mounted) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-500 font-mono text-xs uppercase tracking-widest">Initializing Site Planner...</div>;
 
   const deleteSelected = () => {
@@ -976,7 +986,13 @@ export default function SitePlanner() {
       geocoder.geocode({ address: searchQuery }, (results, status) => {
         if (status === 'OK' && results?.[0]) {
           const loc = results[0].geometry.location;
+          externalCameraUpdateRef.current = Date.now();
           setMapCenter({ lat: loc.lat(), lng: loc.lng() });
+          setZoom(18);
+          setIsSearchOpen(false);
+          setSearchQuery('');
+        } else {
+          console.error('Geocoding failed:', status);
         }
       });
     }
@@ -987,6 +1003,100 @@ export default function SitePlanner() {
     const product = PRODUCTS.find(p => p.id === item.productId);
     return acc + (product?.price || 0);
   }, 0);
+
+  const handleGroupRotationPointerDown = () => {
+    if (selectedIds.length > 1) {
+      const snapshot: any[] = [];
+      selectedIds.forEach(id => {
+        const p = placedItems.find(i => i.instanceId === id);
+        if (p) snapshot.push({ id, type: 'map', lat: p.lat, lng: p.lng, rotation: p.rotation });
+        const b = blueprintItems.find(i => i.instanceId === id);
+        if (b) snapshot.push({ id, type: 'bp', x: b.x, y: b.y, rotation: b.rotation });
+      });
+      initialGroupSnapshotRef.current = snapshot;
+    }
+  };
+
+  const handleGroupRotationPointerUp = () => {
+    if (selectedIds.length > 1) {
+      initialGroupSnapshotRef.current = null;
+      setGroupRotation(0);
+    }
+  };
+
+  const handleRotationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value);
+    
+    if (selectedIds.length === 1) {
+      updateItems(selectedIds, { rotation: val });
+      return;
+    }
+
+    setGroupRotation(val);
+    const snap = initialGroupSnapshotRef.current;
+    if (!snap || snap.length === 0) return;
+
+    let cx = 0, cy = 0;
+    if (viewMode === 'map') {
+      snap.forEach(s => { cx += s.lng!; cy += s.lat!; });
+      cx /= snap.length;
+      cy /= snap.length;
+      
+      const rad = val * Math.PI / 180;
+      const cosR = Math.cos(rad);
+      const sinR = Math.sin(rad);
+      const latCos = Math.cos(cy * Math.PI / 180);
+
+      const newPlaced = [...placedItems];
+      let changed = false;
+      snap.forEach(s => {
+        const dx = (s.lng! - cx) * latCos;
+        const dy = (s.lat! - cy);
+        
+        const nx = dx * cosR + dy * sinR;
+        const ny = -dx * sinR + dy * cosR;
+        
+        const nLng = cx + nx / latCos;
+        const nLat = cy + ny;
+        const nRot = (s.rotation + val) % 360;
+
+        const idx = newPlaced.findIndex(i => i.instanceId === s.id);
+        if (idx !== -1) {
+          newPlaced[idx] = { ...newPlaced[idx], lat: nLat, lng: nLng, rotation: nRot };
+          changed = true;
+        }
+      });
+      if (changed) setPlacedItems(newPlaced);
+
+    } else {
+      snap.forEach(s => { cx += s.x!; cy += s.y!; });
+      cx /= snap.length;
+      cy /= snap.length;
+
+      const rad = val * Math.PI / 180;
+      const cosR = Math.cos(rad);
+      const sinR = Math.sin(rad);
+
+      const newBp = [...blueprintItems];
+      let changed = false;
+      snap.forEach(s => {
+        const dx = s.x! - cx;
+        const dy = s.y! - cy;
+        
+        const nx = dx * cosR - dy * sinR;
+        const ny = dx * sinR + dy * cosR;
+        
+        const nRot = (s.rotation + val) % 360;
+
+        const idx = newBp.findIndex(i => i.instanceId === s.id);
+        if (idx !== -1) {
+          newBp[idx] = { ...newBp[idx], x: cx + nx, y: cy + ny, rotation: nRot };
+          changed = true;
+        }
+      });
+      if (changed) setBlueprintItems(newBp);
+    }
+  };
 
   return (
     <APIProvider apiKey={GOOGLE_MAPS_API_KEY}>
@@ -1491,8 +1601,8 @@ export default function SitePlanner() {
                 </div>
                 <div className="flex items-center gap-8 px-8 border-x border-slate-800">
                   <div className="flex flex-col gap-2 w-48">
-                    <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">Rotation <span className="text-orange-500">{selectedIds.length === 1 ? (placedItems.find(i => i.instanceId === selectedIds[0])?.rotation || 0) : 'Mixed'}°</span></div>
-                    <input type="range" min="0" max="360" value={selectedIds.length === 1 ? (placedItems.find(i => i.instanceId === selectedIds[0])?.rotation || 0) : 0} onChange={e => updateItems(selectedIds, { rotation: parseInt(e.target.value) })} className="w-full accent-orange-500 bg-slate-800 h-1 appearance-none cursor-pointer" />
+                    <div className="flex justify-between text-[10px] font-bold text-slate-500 uppercase">Rotation <span className="text-orange-500">{selectedIds.length === 1 ? (placedItems.find(i => i.instanceId === selectedIds[0])?.rotation || 0) : `Δ ${groupRotation}`}°</span></div>
+                    <input type="range" min="0" max="360" value={selectedIds.length === 1 ? (placedItems.find(i => i.instanceId === selectedIds[0])?.rotation || 0) : groupRotation} onChange={handleRotationChange} onPointerDown={handleGroupRotationPointerDown} onPointerUp={handleGroupRotationPointerUp} className="w-full accent-orange-500 bg-slate-800 h-1 appearance-none cursor-pointer" />
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
