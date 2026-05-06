@@ -1003,7 +1003,7 @@ export default function SitePlanner() {
             <div className="flex items-center justify-between mb-1.5">
               <div className="flex items-center gap-3">
                 <img
-                  src="/valtir-logo.png"
+                  src="/valtir/demo/valtir-logo.png"
                   alt="Valtir"
                   className="h-9 w-auto object-contain flex-none"
                 />
