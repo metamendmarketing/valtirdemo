@@ -20,9 +20,9 @@ import {
   ImageDown,
   X,
 } from 'lucide-react';
-import { usePlans } from '../../lib/usePlans';
-import PlansDrawer from '../../components/PlansDrawer';
-import { exportPlan } from '../../lib/exportPlan';
+import { usePlans } from '@/lib/usePlans';
+import PlansDrawer from '@/components/PlansDrawer';
+import { exportPlan } from '@/lib/exportPlan';
 import {
   APIProvider,
   Map,
