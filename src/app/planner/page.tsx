@@ -237,7 +237,7 @@ const MapHandler = ({
           const newDist = getDistance(effectiveStart, endLatLng);
           const heading = getHeading(effectiveStart, endLatLng);
           const count = Math.max(1, Math.floor(newDist / product.length));
-          const newItems = [];
+          const newItems: any[] = [];
           for (let i = 0; i < count; i++) {
             // Place centers at exact productLen intervals: halfLen, 1.5L, 2.5L ...
             const frac = (product.length / 2 + i * product.length) / newDist;
