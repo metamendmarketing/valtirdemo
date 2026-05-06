@@ -726,7 +726,7 @@ export default function SitePlanner() {
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
   const [blueprintItems, setBlueprintItems] = useState<BlueprintItem[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [interaction, setInteraction] = useState<{type: 'BOX' | 'PATH', start: {x: number, y: number}, end: {x: number, y: number}} | null>(null);
+  const [interaction, setInteraction] = useState<{type: 'BOX' | 'PATH' | 'MEASURE', start: {x: number, y: number}, end: {x: number, y: number}} | null>(null);
   const [viewMode, setViewMode] = useState<'map' | 'blueprint'>('map');
   const [blueprintUrl, setBlueprintUrl] = useState<string | null>(null);
   const [bpScale, setBpScale] = useState<number>(8);
@@ -1424,8 +1424,9 @@ export default function SitePlanner() {
                       lastDragPos.current = null;
                     }}
                     onClick={(e) => {
-                      if (!(e.domEvent.metaKey || e.domEvent.ctrlKey)) {
-                        const isMulti = e.domEvent.shiftKey;
+                      const domEvent = e.domEvent as MouseEvent | KeyboardEvent;
+                      if (!(domEvent.metaKey || domEvent.ctrlKey)) {
+                        const isMulti = domEvent.shiftKey;
                         if (isMulti) {
                           setSelectedIds(prev => prev.includes(item.instanceId) ? prev.filter(i => i !== item.instanceId) : [...prev, item.instanceId]);
                         } else {

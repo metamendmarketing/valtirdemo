@@ -101,7 +101,7 @@ export async function fetchDetectiveSignals(): Promise<DetectiveSignal[]> {
       });
 
     } catch (error) {
-      console.error(`Error scraping ${hub.name}:`, error.message);
+      console.error(`Error scraping ${hub.name}:`, (error as Error).message);
     }
   }
 
