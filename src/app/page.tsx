@@ -29,7 +29,8 @@ import {
   MapControl,
   ControlPosition,
   useMap,
-  AdvancedMarker
+  AdvancedMarker,
+  useMapsLibrary
 } from '@vis.gl/react-google-maps';
 
 // GOOGLE MAPS API KEY
@@ -266,6 +267,7 @@ const MapHandler = ({
 // ── MeasureHandler — tape measure for map mode ───────────────────────────────
 const MeasureHandler = ({ active, pts, setPts }: { active: boolean; pts: {lat:number,lng:number}[]; setPts: React.Dispatch<React.SetStateAction<{lat:number,lng:number}[]>> }) => {
   const map = useMap();
+  const markerLib = useMapsLibrary('marker');
   const polyRef   = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
@@ -304,12 +306,18 @@ const MeasureHandler = ({ active, pts, setPts }: { active: boolean; pts: {lat:nu
     const el   = document.createElement('div');
     el.style.cssText = 'background:#0f172a;border:1px solid #f97316;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:700;color:#fb923c;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.6);font-family:monospace';
     el.textContent   = formatDist(dist);
-    markerRef.current = new g.marker.AdvancedMarkerElement({ position: mid, map, content: el, zIndex: 999 });
+    
+    // Use markerLib if available, fallback to g.marker if already loaded
+    const MarkerLibAPI = markerLib || g.marker;
+    if (MarkerLibAPI && MarkerLibAPI.AdvancedMarkerElement) {
+      markerRef.current = new MarkerLibAPI.AdvancedMarkerElement({ position: mid, map, content: el, zIndex: 999 });
+    }
+
     return () => {
       if (polyRef.current)   { polyRef.current.setMap(null);   polyRef.current = null; }
       if (markerRef.current) { markerRef.current.map = null;   markerRef.current = null; }
     };
-  }, [map, pts]);
+  }, [map, pts, markerLib]);
 
   return null;
 };
@@ -698,7 +706,7 @@ const BlueprintCanvas = ({
         return (
           <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
              {/* Calibration A/B labels */}
-             {calMode !== 'idle' && calPts.length > 0 && calPts.map((pt, i) => {
+             {calMode !== 'idle' && calPts.length > 0 && calPts.map((pt: {x: number, y: number}, i: number) => {
                const sp = toScreen(pt);
                return (
                  <div key={i} className="absolute flex items-center justify-center pointer-events-none" style={{ left: sp.x + 16, top: sp.y, transform: 'translate(0, -50%)' }}>
