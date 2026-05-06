@@ -546,18 +546,18 @@ const BlueprintCanvas = ({
   // ── Calibration overlay (SVG on image) ───────────────────────
   const CalibrationOverlay = () => {
     if (calMode === 'idle' || calPts.length === 0) return null;
-    const ARM = 12, a = calPts[0], b = calPts[1];
+    const ARM = 12 / vpZoom;
+    const a = calPts[0], b = calPts[1];
     const cross = (pt: { x: number; y: number }, label: string) => (
       <g key={label}>
-        <line x1={`calc(${pt.x*100}% - ${ARM}px)`} y1={`${pt.y*100}%`} x2={`calc(${pt.x*100}% + ${ARM}px)`} y2={`${pt.y*100}%`} stroke="#f97316" strokeWidth="2" />
-        <line x1={`${pt.x*100}%`} y1={`calc(${pt.y*100}% - ${ARM}px)`} x2={`${pt.x*100}%`} y2={`calc(${pt.y*100}% + ${ARM}px)`} stroke="#f97316" strokeWidth="2" />
-        <circle cx={`${pt.x*100}%`} cy={`${pt.y*100}%`} r="2" fill="white" />
-        <text x={`calc(${pt.x*100}% + ${ARM+4}px)`} y={`calc(${pt.y*100}% - 4px)`} fill="#f97316" fontSize="10" fontWeight="bold" fontFamily="monospace">{label}</text>
+        <line x1={`calc(${pt.x*100}% - ${ARM}px)`} y1={`${pt.y*100}%`} x2={`calc(${pt.x*100}% + ${ARM}px)`} y2={`${pt.y*100}%`} stroke="#f97316" strokeWidth={2 / vpZoom} />
+        <line x1={`${pt.x*100}%`} y1={`calc(${pt.y*100}% - ${ARM}px)`} x2={`${pt.x*100}%`} y2={`calc(${pt.y*100}% + ${ARM}px)`} stroke="#f97316" strokeWidth={2 / vpZoom} />
+        <circle cx={`${pt.x*100}%`} cy={`${pt.y*100}%`} r={2 / vpZoom} fill="white" />
       </g>
     );
     return (
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 20 }}>
-        {b && <line x1={`${a.x*100}%`} y1={`${a.y*100}%`} x2={`${b.x*100}%`} y2={`${b.y*100}%`} stroke="#f97316" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.7" />}
+        {b && <line x1={`${a.x*100}%`} y1={`${a.y*100}%`} x2={`${b.x*100}%`} y2={`${b.y*100}%`} stroke="#f97316" strokeWidth={1.5 / vpZoom} strokeDasharray={`${6 / vpZoom} ${3 / vpZoom}`} opacity="0.7" />}
         {cross(a, 'A')}{b && cross(b, 'B')}
       </svg>
     );
@@ -602,27 +602,11 @@ const BlueprintCanvas = ({
   const MeasureOverlay = () => {
     if (!measureBpPts || measureBpPts.length === 0) return null;
     const a = measureBpPts[0], b = measureBpPts[1];
-    const img = imgRef.current;
-    const distLabel = (() => {
-      if (!b || !img) return null;
-      const dxPx = (b.x - a.x) * img.clientWidth;
-      const dyPx = (b.y - a.y) * img.clientHeight;
-      return formatDist(Math.sqrt(dxPx*dxPx + dyPx*dyPx) / bpScale);
-    })();
     return (
       <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 25 }}>
-        {b && <line x1={`${a.x*100}%`} y1={`${a.y*100}%`} x2={`${b.x*100}%`} y2={`${b.y*100}%`} stroke="#f97316" strokeWidth="1.5" strokeDasharray="8 4" />}
-        <circle cx={`${a.x*100}%`} cy={`${a.y*100}%`} r="5" fill="#f97316" />
-        {b && <circle cx={`${b.x*100}%`} cy={`${b.y*100}%`} r="5" fill="#f97316" />}
-        {b && distLabel && (() => {
-          const mx = (a.x+b.x)/2*100, my = (a.y+b.y)/2*100;
-          return (
-            <>
-              <rect x={`calc(${mx}% - 34px)`} y={`calc(${my}% - 22px)`} width="68" height="18" rx="4" fill="#0f172a" stroke="#f97316" strokeWidth="1" />
-              <text x={`${mx}%`} y={`calc(${my}% - 9px)`} fill="#fb923c" fontSize="10" fontWeight="700" fontFamily="monospace" textAnchor="middle">{distLabel}</text>
-            </>
-          );
-        })()}
+        {b && <line x1={`${a.x*100}%`} y1={`${a.y*100}%`} x2={`${b.x*100}%`} y2={`${b.y*100}%`} stroke="#f97316" strokeWidth={1.5 / vpZoom} strokeDasharray={`${8 / vpZoom} ${4 / vpZoom}`} />}
+        <circle cx={`${a.x*100}%`} cy={`${a.y*100}%`} r={5 / vpZoom} fill="#f97316" />
+        {b && <circle cx={`${b.x*100}%`} cy={`${b.y*100}%`} r={5 / vpZoom} fill="#f97316" />}
       </svg>
     );
   };
@@ -666,29 +650,13 @@ const BlueprintCanvas = ({
               <circle cx={`${drag.ex*100}%`} cy={`${drag.ey*100}%`} r="4" fill="#f97316" />
             </svg>
           )}
-          {drag && drag.type === 'MEASURE' && (() => {
-            const img = imgRef.current;
-            const distLabel = img && bpScale > 0 ? (() => {
-              const dxPx = (drag.ex - drag.sx) * img.clientWidth;
-              const dyPx = (drag.ey - drag.sy) * img.clientHeight;
-              return formatDist(Math.sqrt(dxPx*dxPx + dyPx*dyPx) / bpScale);
-            })() : null;
-            const mx = (drag.sx + drag.ex) / 2 * 100;
-            const my = (drag.sy + drag.ey) / 2 * 100;
-            return (
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 26 }}>
-                <line x1={`${drag.sx*100}%`} y1={`${drag.sy*100}%`} x2={`${drag.ex*100}%`} y2={`${drag.ey*100}%`} stroke="#10b981" strokeWidth="2" strokeDasharray="8 4" />
-                <circle cx={`${drag.sx*100}%`} cy={`${drag.sy*100}%`} r="5" fill="#10b981" />
-                <circle cx={`${drag.ex*100}%`} cy={`${drag.ey*100}%`} r="5" fill="#10b981" />
-                {distLabel && (
-                  <>
-                    <rect x={`calc(${mx}% - 34px)`} y={`calc(${my}% - 22px)`} width="68" height="18" rx="4" fill="#0f172a" stroke="#10b981" strokeWidth="1" />
-                    <text x={`${mx}%`} y={`calc(${my}% - 9px)`} fill="#34d399" fontSize="10" fontWeight="700" fontFamily="monospace" textAnchor="middle">{distLabel}</text>
-                  </>
-                )}
-              </svg>
-            );
-          })()}
+          {drag && drag.type === 'MEASURE' && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 26 }}>
+              <line x1={`${drag.sx*100}%`} y1={`${drag.sy*100}%`} x2={`${drag.ex*100}%`} y2={`${drag.ey*100}%`} stroke="#10b981" strokeWidth={2 / vpZoom} strokeDasharray={`${8 / vpZoom} ${4 / vpZoom}`} />
+              <circle cx={`${drag.sx*100}%`} cy={`${drag.sy*100}%`} r={5 / vpZoom} fill="#10b981" />
+              <circle cx={`${drag.ex*100}%`} cy={`${drag.ey*100}%`} r={5 / vpZoom} fill="#10b981" />
+            </svg>
+          )}
 
           {items.map((item: BlueprintItem) => {
             const product = PRODUCTS.find(p => p.id === item.productId);
@@ -716,6 +684,61 @@ const BlueprintCanvas = ({
           })}
         </div>
       </div>
+
+      {/* Unscaled HTML UI Layer */}
+      {(() => {
+        const img = imgRef.current;
+        if (!img) return null;
+        const w = img.clientWidth;
+        const h = img.clientHeight;
+        const toScreen = (pt: {x:number, y:number}) => ({
+           x: pt.x * w * vpZoom + vpPan.x,
+           y: pt.y * h * vpZoom + vpPan.y
+        });
+        return (
+          <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+             {/* Calibration A/B labels */}
+             {calMode !== 'idle' && calPts.length > 0 && calPts.map((pt, i) => {
+               const sp = toScreen(pt);
+               return (
+                 <div key={i} className="absolute flex items-center justify-center pointer-events-none" style={{ left: sp.x + 16, top: sp.y, transform: 'translate(0, -50%)' }}>
+                   <span className="text-[10px] font-bold text-orange-500 font-mono drop-shadow-md">{i === 0 ? 'A' : 'B'}</span>
+                 </div>
+               );
+             })}
+             
+             {/* Measure Pt Label */}
+             {measureBpPts && measureBpPts.length === 2 && (() => {
+                const dxPx = (measureBpPts[1].x - measureBpPts[0].x) * w;
+                const dyPx = (measureBpPts[1].y - measureBpPts[0].y) * h;
+                const distLabel = formatDist(Math.sqrt(dxPx*dxPx + dyPx*dyPx) / bpScale);
+                const mid = toScreen({ x: (measureBpPts[0].x+measureBpPts[1].x)/2, y: (measureBpPts[0].y+measureBpPts[1].y)/2 });
+                return (
+                  <div className="absolute pointer-events-none flex items-center justify-center" style={{ left: mid.x, top: mid.y, transform: 'translate(-50%, -50%)' }}>
+                    <span className="bg-slate-900 border border-orange-500 rounded-md px-2 py-0.5 text-[11px] font-bold text-orange-400 whitespace-nowrap shadow-md font-mono">
+                      {distLabel}
+                    </span>
+                  </div>
+                );
+             })()}
+
+             {/* Measure Drag Label */}
+             {drag && drag.type === 'MEASURE' && bpScale > 0 && (() => {
+                const dxPx = (drag.ex - drag.sx) * w;
+                const dyPx = (drag.ey - drag.sy) * h;
+                const distLabel = formatDist(Math.sqrt(dxPx*dxPx + dyPx*dyPx) / bpScale);
+                const mid = toScreen({ x: (drag.sx+drag.ex)/2, y: (drag.sy+drag.ey)/2 });
+                return (
+                  <div className="absolute pointer-events-none flex items-center justify-center" style={{ left: mid.x, top: mid.y, transform: 'translate(-50%, -50%)' }}>
+                    <span className="bg-slate-900 border border-emerald-500 rounded-md px-2 py-0.5 text-[11px] font-bold text-emerald-400 whitespace-nowrap shadow-md font-mono">
+                      {distLabel}
+                    </span>
+                  </div>
+                );
+             })()}
+          </div>
+        );
+      })()}
     </div>
   );
 };
