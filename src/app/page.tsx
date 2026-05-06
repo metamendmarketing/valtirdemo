@@ -417,7 +417,10 @@ const BlueprintCanvas = ({
       onCalClick(rel(e));
       return;
     }
-    if (!(e.metaKey || e.ctrlKey) && !(e.target as HTMLElement).dataset.marker) setSelectedIds([]);
+    if (!(e.metaKey || e.ctrlKey) && !(e.target as HTMLElement).dataset.marker) {
+      setSelectedIds([]);
+      setMeasureBpPts([]);
+    }
   };
 
   // ── Mouse move ────────────────────────────────────────────────
@@ -1490,6 +1493,14 @@ export default function SitePlanner() {
               disableDefaultUI={true}
               mapId="4504f8b373a3ad2"
               className="w-full h-full"
+              onClick={(e) => {
+                const ev = e.domEvent as MouseEvent | KeyboardEvent;
+                if (!ev) return;
+                if (!(ev.metaKey || ev.ctrlKey || ev.shiftKey || isDKeyPressed)) {
+                  setSelectedIds([]);
+                  setMeasureMapPts([]);
+                }
+              }}
             >
               <MapHandler 
                 interaction={interaction}
